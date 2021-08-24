@@ -268,13 +268,15 @@ $$[\theta] = {\theta^{\alpha-1}(1-\theta)^{\beta-1} \over \text{Beta}(\alpha,\be
 $$[y|\theta] = {n \choose y}\theta^y(1-\theta)^{n-y}$$
 
 $$
-\begin{align}
-[y|\theta][\theta] &\propto  \theta^{\alpha-1}(1-\theta)^{\beta-1} \times \theta^y(1-\theta)^{n-y} \\
+[y|\theta][\theta] \propto \theta^{\alpha-1}(1-\theta)^{\beta-1} \times \theta^y(1-\theta)^{n-y}
+$$
 
-[y|\theta][\theta] &\propto  \theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1}
-\end{align}
+$$
+[y|\theta][\theta] \propto  \theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1}
+$$
 
-[\theta|y] = {\theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1} \over \text{Beta}(\alpha,\beta)}
+$$
+[\theta|y] = \frac{\theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1}}{ \text{Beta}(\alpha + y,\beta + n-y)}
 $$
 ---
 # Conjugate priors
