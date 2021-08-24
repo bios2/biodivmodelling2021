@@ -31,7 +31,7 @@ class: title-slide, middle
 
 <hr width="65%" align="left" size="0.3" color="orange"></hr>
 
-## MCMC algorithms
+## Bayesian approaches
 
 <hr width="65%" align="left" size="0.3" color="orange" style="margin-bottom:40px;" alt="@Martin Sanchez"></hr>
 
@@ -42,205 +42,323 @@ class: title-slide, middle
 <img src="assets/img/logo.png" width="25%" style="margin-top:20px;"></img>
 
 ---
+# Bayesian Philosophy
 
-# Objective
+What makes a Bayesian way of thinking? 
 
-The objective of MCMC algorithm is to simulate parameters from a complex posterior distribution
-
----
-
-# Objective
-## Lecture
-
-- Understand the principle of rejection sampling
-- Get an intuition of a multivariate posterior distribution
-- Introduction to Monte Carlo Markov Chain 
-- Run a simple example of Gibbs sampling
-
----
-
-# Bayes theorem 
+--
 
 $$
-\begin{align}
-P(\theta|D,H) &= \frac{P(D|\theta,H) P(\theta,H)}{P(D|H)} \\
-posterior &= \frac{likelihood \times prior}{evidence}
-\end{align}
+P(A|B) = \frac{P(B|A)P(A)}{P(B)}
 $$
 
-The problem : how can we compute the posterior distribution without knowledge of the denominator ? 
+is it Bayes Rule?
+
+
+--
+
+Not entirely! On it's own, this Rule is just logic/algebra
 
 ---
+# Bayesian Philosophy
 
-# Dealing with the normalization constant 
+Bayesians quantify uncertainty with probability 
 
-1. Use the proportional form : 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+suppressPackageStartupMessages(library(tidyverse))
 
-$$ P[\theta \mid X] \propto P[X \mid \theta]P[\theta] $$
+betacurve <- function(x, phi) dbeta(x, .4*phi, (1-.4)*phi)
 
-2. Use conjugacy 
-
-3. Sample from the posterior 
-
----
-
-# Rejection sampling 
-
-1. Use an easily sampled distribution (the candidate distribution $c(x)$ )
-2. Evaluate the probability of the candidate according to a target distribution $t(x)$
-3. Reject candidates with a probability proportional to the difference between the two distributions
-
----
-
-# Rejection sampling 
-## Pseudo-code
-
-```
-DEFINE candidate distribution c(x)
-DEFINE target distribution t(x)
-DEFINE constant M such that M*c(x) >= t(x) for all x
+tibble(x = seq(from = 0.01, to = 0.99, length.out = 100),
+       y1 = betacurve(x, 4),
+       y2 = betacurve(x, 10),
+       y3 = betacurve(x, 20)) %>% 
+  pivot_longer(-x) %>% 
+  ggplot(aes(x = x, y = value, colour = name)) +
+  guides(color = FALSE) + 
+  geom_line(lwd = 3) + 
+  theme_bw()+
+  scale_color_brewer(type = "qual") + 
+  labs(x = "Probability of Survival",
+       y = "Density")
 ```
 
 ---
+# Bayesian Philosophy
 
-# Rejection sampling 
+In other words: Bayesians consider that the scientific world is divided into two parts: 
 
-Acceptance probability : 
+* .huge[**The Observed**]: Data! the observations, numbers, photos, "y variables" whatever you call them
 
-$$p = \frac{t(x)}{Mc(x)} $$
+--
+
+* .huge[**The Unobserved**]: parameters, latent states, usually of much more general scientific interest
+
+
+---
+class: center
+# Bayesian Philosophy
+
+How do we use the observed to learn about the unobserved? 
+
+We use: 
+
+
+$$
+[y, \theta]
+$$
+
+the **joint distribution of the parameters and the data**
 
 ---
 
-# Rejection sampling
-# Pseudo-code (next)
+uh what kind of joint is this
 
+.pull-left[![](https://media.giphy.com/media/a5jlJqXTu6g92/giphy.gif)]
+
+
+.pull-right[![](https://media.giphy.com/media/CoB1VA7w5cAjC/giphy.gif?cid=ecf05e4777hzudz4rg80tjmzhpzdxfm1gaju520k2hm4e6z4&rid=giphy.gif&ct=g)]
+
+---
+# Bayesian Philosophy
+.pull-left[A simple sketch of a joint distribution: when a parameter changes (survivorship probability) the observations also change. Likewise, we might think that a change in the observations suggests that the unseen probability has also changed.]
+
+.pull-right[
+```{r echo = FALSE}
+tibble(p = rep(c(.2, .6, .9), each = 10),
+       survived = rbinom(30, 10, prob = p)) %>% 
+  ggplot(aes(x = p, y = survived)) + geom_point(position = position_jitter(width = .05), size = 3) + 
+  theme_bw() + 
+  labs(x = "Probability of survivorship", y = "Survival")
+  
 ```
-REPEAT 
-	DRAW sample X from c(x)
-	COMPUTE acceptance probability p = t(X)/Mc(X)
-	DRAW random value rand from uniform on [0,1] 	
-	IF rand < p 
-		accept x
-	ELSE 
-		reject X
-UNTIL X is accepted 
+]
+
+---
+# Bayesian Philosophy
+
+We _factor_ the joint distribution into two parts, like this: 
+
+$$
+[y, \theta] = [y | \theta]\times [\theta]
+$$
+
+--
+
+* $[y|\theta]$ is the Likelihood
+
+--
+
+* $[\theta]$ is the prior
+
+--
+
+And finally apply Bayes Rule
+
+$$
+[\theta|y] = \frac{[y|\theta][\theta]}{[y]}
+$$
+
+This numerator involves summing up the likelihood over **all possible prior values**. In other words, considering what DID happen relative to everything that _could have_ happened!
+
+---
+# Goal for today
+
+Today we will build intuition for Bayesian inference. By the end of today (or tomorrow!) you will have learned how to find, and work with, the posterior distributions of parameters
+
+We'll look at the following topics
+
+* Posterior via grid search
+
+--
+
+* Posterior via conjugate priors
+
+--
+
+* Metropolis and Metropolis-Hastings algorithms
+
+--
+
+_brief detour into Hierarchical Models!_
+
+--
+
+* Gibbs sampling
+
+---
+class: centre
+
+# Grid Search
+
+*Objective* intuition for how we actually multiply the prior by the likelihood to get a probability density function. 
+
+Grid search is very similar to our initial Maximum Likelihood procedures, with the addition of a prior
+
+---
+# Chick survival
+
+The Fake Petrel ( _Hydrobates inventus_ ) lays precisely 6 eggs. You have data on survivorship from 10 different nests:
+
+```{r echo = TRUE}
+set.seed(1859)
+x_obs <- rbinom(10, 6, 0.6)
+x_obs
+```
+
+In general about a third of petrels survive.  Use grid search to find the posterior distribution of $p$, the probability that an egg successfully hatches. 
+---
+# Steps
+1. make a vector of probabilities for $p$ using `seq(from = 0, to = 1, length.out = n)`
+1. Think about the prior you might use. Look at `curve(dbeta(x))`.
+1. find the probability of each of these values of $p$ via `dbeta`
+1. find the likelihood for each of these values of $p$ via `dbinom`
+1. multiply these two columns together
+1. normalize (divide by the sum)
+
+A note on the Beta distribution: 
+
+$$
+\text{Beta}(\alpha = \mu\phi, \beta = (1 - \mu)\phi)
+$$
+
+* $\mu$ the average probability
+* $\phi$ the "concentration" around this value
+
+---
+class: center
+# conjugate priors
+![](assets/poohpiglet.png)
+---
+
+# Conjugate priors 
+
+Conjugate priors exist for many common probability distributions
+
+The posterior is the same distribution as the prior with new, updated parameters
+
+--
+
+> it is embarassing do to an elaborate numberical procedure to obtain results that can be obtained on a napkin -- Hobbs and Hooten
+
+--
+
+![](assets/jinx.png)
+
+---
+# Conjugate priors
+
+| prior      | likelihood | Posterior                                                                                                     |
+|-------------------|-----------------------|------------------------------------------------------------------|
+| $p ~\sim \text{Beta}(\alpha,\beta)$           | $y \sim \text{Binomial(p, N)}$           | $p \sim \text{Beta}(\alpha + \sum y, \beta + \sum (n- y)$                   |
+| $\lambda \sim \text{gamma}(\alpha, \beta)$          | $y \sim \text{Poisson}(\lambda)$  |  $\lambda \sim \text{gamma}(\alpha + \sum y, \beta + n)$       |
+
+---
+# Petrels again
+
+Lets go back to our Fake Petrel data
+
+```{r echo = TRUE}
+set.seed(1859)
+x_obs <- rbinom(10, 6, 0.6)
+x_obs
+```
+
+Calculate the conjugate posterior and add it to the figure using `curve`. How does it compare to grid search.
+
+---
+# Predictions
+
+In both of these approaches, we end up with a _distribution_ for p. How can we use this to make predictions? 
+
+* sample values from your posterior for $p$
+* for each sampled value, sample a single surviving nest of 6 eggs
+* do this lots of times 
+
+_remember R is vectorized_ 
+
+--
+
+e.g. for prior $\mu = 0.3$ and $\phi = 5$
+
+```{r }
+ps <- rbeta(200, 0.3 * 5 + sum(x_obs),
+            0.7 * 5 + sum(6 - x_obs))
+ys <- rbinom(200, size = 6, prob = ps)
+
 ```
 
 ---
+# Exercise with your data
 
-# Rejection sampling 
-## Exercise 1
+does the Distribution you chose have a conjugate prior? Can you estimate the posterior distribution this way? 
 
-Write a function that uses rejection sampling to return $n$ random normal deviates using only a uniform random number generator as a source of randomness. 
+---
+class: inverse, centre
 
-Note : you can still use *dnorm* to evaluate your target distribution. 
+# Markov Chain Monte Carlo
+
+---
+# Remember Simulated Annealing
+
+Your grasp of simulated annealing will extend to understanding MCMC methods as well! 
+
+Three things to keep in mind: 
+
+* We can work with a function even if it is too complex to analyze directly
+
+--
+
+* the *Effeciency* of an algorithm is key, especially when problems grow
+
+--
+
+* We get several knobs to turn to control how an algorithm behaves. Another thing to think about as you perform modelling! 
 
 ---
 
-# Rejection sampling 
-## Exercise 1
+# MCMC "magic"
 
-```{r, echo = FALSE, eval = FALSE}	
-	rej_norm <- function(n, mu, sig) {
-		# Define the target
-		target <- function(x, mu, sig) dnorm(x)
-		# Define the candidate
-		cand <- function(x) dunif(x,-2*sig,2*sig)
-		# Constant
-		M <- 5
-		# Object to store the n results 
-		result <- numeric(n)
-		# Main loop
-		for(i in 1:n) {
-		    accept <- FALSE
-		    while(!accept) {
-		      X <- runif(1,-6,6)
-		      p <- target(X) / (M * cand(X))
-		      P <- runif(1)
-		      accept <- (P < p) 
-			  } #endwhile
-		    result[i] <- X 
-		} #endfor
-		return(result) } #endfunction
-```
+The objective of MCMC algorithm is to simulate parameters from a complex posterior distribution.
+
+--
+
+Rather than measure the *absolute* probability of different parameter values:
+
+$$
+[\theta|y] = \frac{[y|\theta][\theta]}{[y]}
+$$
+
+we sample, and evaluate the *relative* probability of two possible parameter values:
+
+$$
+\frac{[\theta^{new}|y]}{[\theta^k|y]} = \frac{[y|\theta^{new}][\theta^{new}]}{[y|\theta^k][\theta^k]}
+$$
+
+In this way, we can sample a probability distribution ( $[\theta|y]$ ) using only something _proportional_ to that distribution ( $[y|\theta][\theta]$ ) 
 
 ---
+# The Metropolis Algorithm
 
-# Metropolis-Hastings algorithm
+* Draw $\theta^{new}$ from a _symmetric_ distribution centered on $\theta^{k}$ (i.e. in the $k$th interation, the current value)
+e.g. $\theta^{new} \sim N(\theta^{k}, \sigma_{tune})$
+* Calculate the ratio R:
 
-- Simulated annealing is a special case of MH
-- Unlike rejection sampling, each iteration generates a sample from the target distribution
-- Samples are dependent (autocorrelated), so effective sample size is much smaller than chain length
-- For a Markov Chain $X$, draw $X_t$ from candidate distribution $j(x|X_{t-1})$ and compare to target distribution $f(x)$
-- Better propositions are not deterministically accepted
-- The posterior probability is stationary
+$$
+R = \text{min}\left( 1, \frac{[y|\theta^{new}][\theta^{new}]}{[y|\theta^k][\theta^k]}\right)
+$$
 
---- 
+(in other words, if the ratio is better always take it. If the ratio is less than 1, there's a chance we'll take it anyway)
 
-# Metropolis-Hastings algorithm
-## Jump directly to the R code 
-
-```{r, echo = FALSE, eval = FALSE}	
-	metropolis <- function(N = 5000, X0 = 0, A) #{
-		# N: number of MCMC iterations
-		# X0: starting value of the chain 
-		# A: step parameter
-		# Object to store results
-		chain <- numeric(N + 1)
-		chain[1] <- X0
-	#}
-```
-
---- 
-
-# Metropolis-Hastings algorithm
-## Jump directly to the R code 
-
-```{r, echo = FALSE, eval = FALSE}	
-	metropolis <- function(N = 5000, X0 = 0, A) #{
-		# DEFINE target distribution 
-		cand_fn <- function(y, A) runif(1, y-A, y+A)
-
-		# DEFINE candidate distribution
-		target_fn <- dnorm(x, 0, 1)
-
-		# DEFINE acceptance probability function
-		accept_fn <- function(current.value, previous.value) 
-			target_fn(current.value)/target_fn(previous.value)
-	
-	#}
-```
-
---- 
-
-# Metropolis-Hastings algorithm
-## Jump directly to the R code 
-
-```{r, echo = FALSE, eval = FALSE}	
-	metropolis <- function(N = 5000, X0 = 0, A) #{
-
-		for(step in 2:(N+1)) {
-			# PROPOSE candidate
-			current.value <- cand_fn(chain[step -1], A)
-
-			# COMPUTE acceptance probability
-			p <- accept_fn(current.value, chain[step-1])
-
-			# DO rejection sampling
-			rand <- runif(1)
-			if(rand <- p) 
-				chain[t] = current.value
-			else 
-				chain[t] = chain[t-1]
-		}
-
-		#return(chain)
-	#}
-```
+* Test to see if `runif(1, min=0, max=1)` $< R$. if so, set $\theta^{k + 1} = \theta^{new}$
 
 ---
+# Try it out!
 
-# Metropolis-Hastings algorithm
-## Exercise 2. 
+Use the metropolis algorithm to fit the following data on the Fictitious Leafhopper abunance on 5 plants:
 
-Copy the MH code and adapt it to simulate a binomial distribution. 
+```{r}
+set.seed(1859)
+xs <- rpois(5, 27)
+```
+
