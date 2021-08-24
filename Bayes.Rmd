@@ -206,15 +206,32 @@ x_obs <- rbinom(10, 6, 0.6)
 x_obs
 ```
 
-In general about a third of petrels survive.  Use grid search to find the posterior distribution of $p$, the probability that an egg successfully hatches. 
+Our model is:
+
+$$
+\text{hatched}_{i} \sim \text{Binomial}(\theta, 6)
+$$
+Because we want the Bayesian posterior distribution, we also need a prior for $\theta$
+
+$$
+\theta \sim \text{Uniform}(0,1)
+$$
+
+We'll try several, but this is our starting point
 ---
+
+Use grid search to find the posterior distribution of $\theta$, the probability that an egg successfully hatches. 
+
 # Steps
-1. make a vector of probabilities for $p$ using `seq(from = 0, to = 1, length.out = n)`
-1. Think about the prior you might use. Look at `curve(dbeta(x))`.
-1. find the probability of each of these values of $p$ via `dbeta`
-1. find the likelihood for each of these values of $p$ via `dbinom`
+1. make a vector of probabilities for $\theta$ using `seq(from = 0, to = 1, length.out = n)`
+1. Think about the prior you might use. Start with `dunif(x, min = 0, max = 1)`.
+1. find the probability of each of these values of $\theta$ via `dunif`
+1. find the likelihood for each of these values of $\theta$ via `dbinom`
 1. multiply these two columns together
 1. normalize (divide by the sum)
+
+---
+# Notes and reminders
 
 A note on the Beta distribution: 
 
@@ -245,6 +262,20 @@ The posterior is the same distribution as the prior with new, updated parameters
 
 ![](assets/jinx.png)
 
+---
+
+$$[\theta] = {\theta^{\alpha-1}(1-\theta)^{\beta-1} \over \text{Beta}(\alpha,\beta)}$$
+$$[y|\theta] = {n \choose y}\theta^y(1-\theta)^{n-y}$$
+
+$$
+\begin{align}
+[y|\theta][\theta] &\propto  \theta^{\alpha-1}(1-\theta)^{\beta-1} \times \theta^y(1-\theta)^{n-y} \\
+
+[y|\theta][\theta] &\propto  \theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1}
+\end{align}
+
+[\theta|y] = {\theta^{y + \alpha-1}(1-\theta)^{n - y + \beta-1} \over \text{Beta}(\alpha,\beta)}
+$$
 ---
 # Conjugate priors
 
