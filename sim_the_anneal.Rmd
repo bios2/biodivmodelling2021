@@ -1,0 +1,155 @@
+---
+title: "simulate_some_annealz"
+author: "Andrew"
+date: "20/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+`DEFINE function to optimize h(X)`
+
+```{r}
+
+fake_xs <- rnorm(42, 19, 4)
+
+loglike_numbers <- function(numbers, mu) sum(dnorm(x = numbers, mean = mu, sd = 4, log = TRUE))
+
+
+loglike_numbers(fake_xs, 7)
+library(tidyverse)
+
+tibble(possible_mus = -3:30) %>% 
+  mutate(ll = map_dbl(possible_mus, loglike_numbers, numbers = fake_xs)) %>% 
+  ggplot(aes(x = possible_mus, y = ll)) + geom_point() + 
+  geom_vline(xintercept = 19)
+
+```
+
+
+`DEFINE the sampling function c(X)`
+
+```{r}
+
+see_of_x <- function(x, sigma = 1) { x + rnorm(1, sd = sigma) }
+
+xx <- numeric(40)
+xx[1] <- 30
+
+## walk like a drunk: test my see of x function
+for(i in 2:40){
+  xx[i] <- see_of_x(xx[i-1], sigma = .001)
+}
+
+plot(xx, type = "l")
+```
+
+
+
+ `DEFINE temperature sequence`
+
+```{r}
+
+
+temp_line <- function(runs, tstart, tcool){
+  exp(log(tstart) + log(tcool)*0:(runs-1))
+}
+
+temp_line_str <- function(runs, tstart) {
+  seq(tstart, 0, length.out = runs)
+}
+
+tibble(time = 1:300,
+       temp = temp_line(300, 8, 0.9)) %>% 
+  ggplot(aes(x = time, y = temp)) + 
+  geom_point()
+
+tibble(time = 1:300,
+       prob = exp(-13/temp_line(300, 70, 0.97))) %>% 
+  ggplot(aes(x = time, y = prob)) + 
+  geom_point()
+
+```
+
+
+
+
+```
+    REPEAT
+        DRAW sample X from c(x)
+        COMPUTE difference diff = h(X) - h(X_0)
+        IF diff > 0 ACCEPT X
+        ELSE 
+            COMPUTE acceptance probability p = exp(diff/T)
+            DRAW value P from random uniform on (0,1)
+            IF P < p
+                ACCEPT X
+            ELSE
+                REJECT X
+        UPDATE temperature
+    UNTIL nsteps is reached
+```
+
+
+```{r}
+# function to take temperature, diff, and give back TRUE or FALSE (will a negative be kept)
+
+keep_neg_diff <- function(diff, Tmp){
+  stopifnot(diff<0)
+  runif(1, min = 0, max = 1) < exp(diff/Tmp)
+}
+
+keep_neg_diff(-30, Tmp = 40)
+
+
+keep_neg_diff(10, Tmp = 0)
+
+```
+
+
+```{r}
+
+## function to take x0 and x1 and a function and temp and return either x0 (reject) or x1 ( accept)
+keep_or_reject <- function(x0, x1, fun, temp){
+  diff <- fun(x1) - fun(x0)
+  # browser()
+  if (diff > 0) {
+    return(x1)
+  } else if (keep_neg_diff(diff, Tmp = temp)){
+    return(x1)
+  } else {
+    return(x0)
+  }
+}
+
+```
+
+
+```{r}
+# evaluate for these only
+
+ll_fakenums_f_x <- function(x) loglike_numbers(fake_xs, mu = x)
+
+# make temperatures
+runs <- 299
+
+temps <- temp_line(runs, 3, 0.98)
+
+xx <- numeric(runs + 1)
+
+startval <- 10
+
+
+xx[1] <- startval
+
+
+for (i in 2:runs){
+  maybe <- see_of_x(xx[i-1])
+  xx[i] <- keep_or_reject(x0 = xx[i-1], x1 = maybe, fun = ll_fakenums_f_x, temp = temps[i-1])
+}
+
+plot(xx, type = "l")
+```
