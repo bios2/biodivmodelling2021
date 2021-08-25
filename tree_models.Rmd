@@ -1,0 +1,113 @@
+---
+title: "Maximum likelihood"
+author: "Dominique Gravel"
+date: "August 25th, 2021"
+output:
+  xaringan::moon_reader:
+    css: [default, assets/ecl707.css, "hygge"]
+    lib_dir: assets
+    seal: false
+    nature:
+      highlightStyle: monokai
+      highlightLines: true
+      countIncrementalSlides: false
+      beforeInit: "macros.js"
+---
+
+class: title-slide, middle
+
+<style type="text/css">
+  .title-slide {
+    background-image: url('assets/img/bg.jpg');
+    background-color: #23373B;
+    background-size: contain;
+    border: 0px;
+    background-position: 600px 0;
+    line-height: 1;
+  }
+</style>
+
+# Model evaluation with ecological data
+
+<hr width="65%" align="left" size="0.3" color="orange"></hr>
+
+## Bayes models. Problem
+
+<hr width="65%" align="left" size="0.3" color="orange" style="margin-bottom:40px;" alt="@Martin Sanchez"></hr>
+
+.instructors[
+  **ECL707/807** - Dominique Gravel
+]
+
+<img src="assets/img/logo.png" width="25%" style="margin-top:20px;"></img>
+
+---
+
+# Go back to hemlock's growth  
+
+```{r echo=FALSE, fig.align="center"}
+### Load data
+hemlock <- read.table("data/hemlock.txt", header = T)
+
+### Draw figure
+par(mar=c(5,5.5,2,1.5))
+plot(hemlock[,1], hemlock[,2], xlab = "Light availability (%)", ylab = "Height growth (mmm/yr)", cex.axis = 1.5, cex.lab = 1.5)
+points(hemlock[,1], 260.6*hemlock[,1]/(260.6/7.56 + hemlock[,1]), pch = 19, col = "darkred")
+
+```
+
+How do you propose to evaluate model fit ?
+
+---
+
+# Time to try it with Bayes 
+
+## Simulate data
+
+It is good practice to work on simulated data to make sure that your algorithm reports you the right answer. Alternatively, generating simulated data also requires you to push your reasoning to the end and make sure that you get correct predictions (e.g. body mass or growth are positive values)
+
+---
+
+# Remember
+
+$$y \backsim \eta(\mu, \sigma^2)$$
+
+where
+
+$$\mu_i = \alpha + \beta x_i$$
+
+Basically, what we do is *reverse engineering*, we are trying to get back at the original data according to model specifications. Sometimes we learn through the process...
+
+---
+
+# Your tasks (step 1  : one model per species)
+
+1. Generate simulated data for each species according to the parameters in table 2 of Coates and Burton (1999). Pretty much like the inverse recipe of the likelihood function using *rnorm* instead of *dnorm*.
+
+2. Write the likelihood function for your model. Check with grid search if the profile gives you a maximum likelihood at the parameters you set. 
+
+3. Think about a prior distribution for $a$, $s$ and $\sigma$ and implement it to get the *proportional form* of the posterior distribution (only the numerator). Try it with the parameters you currently have. Compare the result to other parameter values. 
+
+4. Using the proportional form, compare the likelihood to the likelihood X prior.  
+
+---
+
+# Your tasks (step 2 : one model to rule them all)
+
+We'll now turn to mixed models. We will develop a single model, with random $a$ and $s$ parameters for the species. 
+
+1. Lump the simulated data for the different species and add a field specifying the species 
+
+2. Write the function for the distribution of $a$ and $s$ parameters
+
+3. Write the function for the distribution of hyper parameters (the parameters of the distribution of $a$ and $s$)
+
+4. Collect the whole thing to write your posterior distribution (numerator only)
+
+5. Compute the probability of the solution (the set of $a$ and $s$ parameters for all species)
+
+--- 
+
+
+
+

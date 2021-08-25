@@ -1,0 +1,223 @@
+---
+title: "Generative models and multilevel models"
+author: "Dominique Gravel & Andrew MacDonald"
+date: "August 25th, 2021"
+output:
+  xaringan::moon_reader:
+    css: [default, assets/ecl707.css, "hygge"]
+    lib_dir: assets
+    seal: false
+    nature:
+      highlightStyle: monokai
+      highlightLines: true
+      countIncrementalSlides: false
+      beforeInit: "macros.js"
+---
+
+class: title-slide, middle
+
+<style type="text/css">
+  .title-slide {
+    background-image: url('assets/img/bg.jpg');
+    background-color: #23373B;
+    background-size: contain;
+    border: 0px;
+    background-position: 600px 0;
+    line-height: 1;
+  }
+</style>
+
+# Model evaluation with ecological data
+
+<hr width="65%" align="left" size="0.3" color="orange"></hr>
+
+## Generative models and multilevel models
+
+<hr width="65%" align="left" size="0.3" color="orange" style="margin-bottom:40px;" alt="@Martin Sanchez"></hr>
+
+.instructors[
+  Andrew MacDonald, Dominique Gravel
+]
+
+<img src="assets/img/logo.png" width="25%" style="margin-top:20px;"></img>
+
+---
+# Generative models
+
+Bayesian models can generate data. This is part of what makes them useful in ecology:
+
+* Easy to make predictions
+* Straightforward to test the model
+
+---
+# Simple Generative model
+
+We've already seen a simple model which is generative: our Binomial model with a Beta prior:
+
+We start with this model
+$$
+\begin{align}
+y \sim \text{Binomial}(6, \theta) \\
+\theta \sim Beta(2,2)
+\end{align}
+$$
+
+and we have data `4, 5, 4, 4, 3`
+
+* So total successes is $4 + 5 + 4 + 4 + 3 = 20$
+* And total failures is $6 * 5 - 20 = 30$
+
+The posterior becomes:
+
+$$
+\theta_{post} \sim \text{Beta}(22, 32)
+$$
+
+---
+# Generating data with this simple model
+
+Quick pseudocode (_Note_ this is also called the Beta-Binomial distribution) :
+
+* generate values of $\theta$ from $\text{Beta}(22, 32)$
+* for each value, generate an observation of surviving eggs using:
+
+$$
+y \sim \text{Binomial}(6, \theta)
+$$
+
+.pull-left[
+```{r post-bb-hist, echo=TRUE, fig.show = 'hide'}
+theta_post <- rbeta(200, 
+                    22, 32)
+obs <- rbinom(n = 200, 
+              size = 6, 
+              theta_post)
+hist(obs, breaks = 20)
+```
+]
+
+.pull-right[
+```{r ref.label = 'post-bb-hist', echo = FALSE}
+```
+]
+
+---
+# nonlinear tree growth -- model
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/x + L} \\
+\end{align}
+$$
+
+To make it Bayesian, we specify distributions for every parameter:
+--
+$$
+\begin{align}
+\sigma_{height} & \sim \text{Exponential}(0.5)\\
+a               & \sim \text{Normal}(200, 15)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+_not_ the only choices for these parameters
+
+---
+# Nonlinear light data -- simulation
+
+Draw parameters from your priors. 
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/x + L} \\
+\sigma_{height} & \sim \text{Exponential}(2)\\
+a               & \sim \text{Normal}(200, 15)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+
+---
+# Nonlinear light data -- simulation
+
+Draw parameters from your priors. 
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/x + L} \\
+\sigma_{height} & = 0.36\\
+a               & = 196.4\\
+s               & = 16.1\\
+\end{align}
+$$
+
+--
+* keep these fixed for the rest of the simulation! You can go back and try different ones later!
+--
+* **pop quiz** is $\mu$ a parameter??
+---
+# Nonlinear light data -- simulation
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}\left(\text{log}\left(\frac{aL}{a/x + L} \right), \sigma_{height}\right) \\
+\sigma_{height} & = 0.36\\
+a               & = 196.4\\
+s               & = 16.1\\
+\end{align}
+$$
+
+---
+class: center
+# Simple simulation
+
+```{r echo=FALSE}
+L <- runif(300, 0.1, 100)
+mean <- 196.4 * L / (196.4 / 16.4 + L)
+hts <- rlnorm(300, log(mean), 0.36)
+plot(L, hts)
+points(L, mean, bg = "red", pch = 21)
+```
+---
+# Hierarchical models
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/x + L} \\
+\sigma_{height} & \sim \text{Exponential}(2)\\
+a               & \sim \text{Normal}(200, 15)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+---
+# Hierarchical models
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/x + L} \\
+a &= \bar{a} + a_{species[i]}\\
+a_{species} &= \text{Normal}(0, \sigma_a)\\
+\sigma_{height} & \sim \text{Exponential}(2)\\
+\sigma_{height} & \sim \text{Exponential}(4)\\
+a               & \sim \text{Normal}(200, 15)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+---
+class: center
+# Different species $a$ simulation
+
+```{r echo=FALSE, message = FALSE, echo=FALSE}
+sp <- 1:5
+a_sp <- 196.4 + rnorm(5, mean = 0, sd = 70)
+L <- runif(300, 0.1, 100)
+suppressPackageStartupMessages(library(tidyverse))
+expand_grid(sp,L) %>% 
+  mutate(mean_ht = a_sp[sp] * L / (a_sp[sp] / 16.4 + L),
+         hts = rlnorm(5*300, log(mean_ht), 0.1)) %>% 
+  ggplot(aes(x = L, y = hts)) + facet_wrap(~sp) + geom_point() + 
+  theme_bw()
+```
