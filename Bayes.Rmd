@@ -510,8 +510,8 @@ xs
 
 $$
 \begin{align}
-y &\sim \text{Poisson}(e^{\alpha}) \\
-\alpha &\sim \text{Normal}(10, 2)
+y &\sim \text{Poisson}(\lambda) \\
+\lambda &\sim \text{Gamma}\left(\frac{25^2}{15^2}, \frac{25}{15^2}\right)
 \end{align}
 $$
 
