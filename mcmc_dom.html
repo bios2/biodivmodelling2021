@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>MCMC</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Dominique Gravel" />
+    <script src="assets/header-attrs-2.8/header-attrs.js"></script>
+    <link href="assets/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="assets/remark-css-0.0.1/hygge.css" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/ecl707.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+class: title-slide, middle
+
+&lt;style type="text/css"&gt;
+  .title-slide {
+    background-image: url('assets/img/bg.jpg');
+    background-color: #23373B;
+    background-size: contain;
+    border: 0px;
+    background-position: 600px 0;
+    line-height: 1;
+  }
+&lt;/style&gt;
+
+# Sampling the posterior with MCMC
+
+&lt;hr width="65%" align="left" size="0.3" color="orange"&gt;&lt;/hr&gt;
+
+## Rejection sampling, Metropolis Hastings etc.
+
+&lt;hr width="65%" align="left" size="0.3" color="orange" style="margin-bottom:40px;" alt="@Martin Sanchez"&gt;&lt;/hr&gt;
+
+.instructors[
+  **ECL707/807** - Dominique Gravel
+]
+
+&lt;img src="assets/img/logo.png" width="25%" style="margin-top:20px;"&gt;&lt;/img&gt;
+
+---
+
+# Objective
+
+The objective of MCMC algorithm is to simulate parameters from a complex posterior distribution
+
+---
+
+# Outline
+
+- Understand the principle of rejection sampling
+- Get an intuition of a multivariate posterior distribution
+- Introduction to Monte Carlo Markov Chain 
+- Run a simple example of Gibbs sampling
+
+---
+
+# Bayes theorem 
+
+$$ P(\theta|D,H) = \frac{P(D|\theta,H)P(\theta,H)}{P(D|H)} $$
+
+$$ posterior = \frac{likelihood \times prior}{evidence} $$
+
+The problem : how can we compute the posterior distribution without knowledge of the denominator ? 
+
+---
+
+# Dealing with the normalization constant 
+
+1. Use the proportional form : 
+
+$$ P[\theta \mid X] \propto P[X \mid \theta]P[\theta] $$
+
+2. Use conjugacy 
+
+3. Sample from the posterior 
+
+---
+
+# Rejection sampling 
+
+1. Use an easily sampled distribution (the candidate distribution `\(c(x)\)` )
+2. Evaluate the probability of the candidate according to a target distribution `\(t(x)\)`
+3. Reject candidates with a probability proportional to the difference between the two distributions
+
+---
+
+# Rejection sampling 
+**Pseudo-code**
+
+```
+DEFINE candidate distribution c(x)
+DEFINE target distribution t(x)
+DEFINE constant M such that M*c(x) &gt;= t(x) for all x
+```
+
+---
+
+# Rejection sampling 
+
+Acceptance probability : 
+
+$$p = \frac{t(x)}{Mc(x)} $$
+
+---
+
+# Rejection sampling
+# Pseudo-code (next)
+
+```
+REPEAT 
+	DRAW sample X from c(x)
+	COMPUTE acceptance probability p = t(X)/Mc(X)
+	DRAW random value rand from uniform on [0,1] 	
+	IF rand &lt; p 
+		accept x
+	ELSE 
+		reject X
+UNTIL X is accepted 
+```
+
+---
+
+# Rejection sampling 
+
+**Exercise 1**
+
+Write a function that uses rejection sampling to return `\(n\)` random normal deviates using only a uniform random number generator as a source of randomness. 
+
+Note : you can still use *dnorm* to evaluate your target distribution. 
+
+---
+
+# Rejection sampling 
+
+
+```r
+	rej_norm &lt;- function(n, mu, sig) {
+		# Define the target
+		target &lt;- function(x, mu, sig) dnorm(x)
+		# Define the candidate
+		cand &lt;- function(x) dunif(x,-2*sig,2*sig)
+		# Constant
+		M &lt;- 5
+		# Object to store the n results 
+		result &lt;- numeric(n)
+		# Main loop
+		for(i in 1:n) {
+		    accept &lt;- FALSE
+		    while(!accept) {
+		      X &lt;- runif(1,-6,6)
+		      p &lt;- target(X) / (M * cand(X))
+		      P &lt;- runif(1)
+		      accept &lt;- (P &lt; p) 
+			  } #endwhile
+		    result[i] &lt;- X 
+		} #endfor
+		return(result) } #endfunction
+```
+
+---
+
+# Metropolis-Hastings algorithm
+
+- A very general technique to explore the parameter space
+- Simulated annealing is a special case of MH
+- Unlike rejection sampling, each iteration generates a sample from the target distribution
+- Samples are dependent (autocorrelated), so effective sample size is much smaller than chain length
+- For a Markov Chain `\(X\)`, draw `\(X_t\)` from candidate distribution `\(j(x|X_{t-1})\)` and compare to target distribution `\(f(x)\)`
+- Better propositions are not deterministically accepted
+- The posterior probability is stationary after a *burnin* period
+
+---
+
+# Acceptance probability
+
+Full definition is : 
+
+`$$p = \frac{t(X_{t})c(X_{t-1}|X{t})}{t(X_{t-1})c(X_{t}|X_{t-1})}$$`
+
+Where `\(X_t\)` is the current candidate value and `\(X_{t-1}\)` is the previous value.
+
+Note that if `\(t(x)\)` is a posterior distribution, the normalization constant cancels.
+
+---
+
+# Metropolis-Hastings algorithm
+
+
+```r
+	# metropolis &lt;- function(N = 5000, X0 = 0, A) {
+		# N: number of MCMC iterations
+		# X0: starting value of the chain 
+		# A: step parameter
+		# Object to store results
+		chain &lt;- numeric(N + 1)
+		chain[1] &lt;- X0
+	#}
+```
+
+---
+
+# Metropolis-Hastings algorithm
+
+
+```r
+		# DEFINE candidate distribution 
+		cand_fn &lt;- function(y, A) runif(1, y-A, y+A)
+
+		# DEFINE target distribution
+		target_fn &lt;- dnorm(x, 0, 1)
+
+		# DEFINE acceptance probability function
+		accept_fn &lt;- function(current.value, previous.value) 
+			target_fn(current.value)/target_fn(previous.value)
+```
+
+---
+
+# Acceptance probability
+
+- What to use for `\(c(x|y)\)`?
+- Very flexible, but must allow for positive recurrence of the chain
+- An example is the uniform distribution centered on the previous value 
+- A nice property of the uniform is that `\(c(x \mid y) = c(y \mid x)\)`, so:
+
+`$$p = \frac{f(X_{t})}{f(X_{t-1})}$$`
+
+---
+
+# Metropolis-Hastings algorithm
+
+
+```r
+for(step in 2:(N+1)) {
+  
+  # PROPOSE candidate
+  current.value &lt;- cand_fn(chain[step -1], A)
+  
+  # COMPUTE acceptance probability
+  p &lt;- accept_fn(current.value, chain[step-1])
+  
+  # DO rejection sampling
+  rand &lt;- runif(1)
+  if(rand &lt;- p) 
+    chain[t] = current.value
+  else 
+    chain[t] = chain[t-1]
+}
+```
+
+---
+
+# Exercise 2. 
+
+- Copy the MH code and adapt it to evaluate the parameter of the petrel example (binomial model)
+
+- Plot the chain to observe convergence 
+
+- Change initial values to compare
+
+---
+
+# Gibbs sampling
+
+- Gibbs Sampling is generalization of MCMC for _joint distributions_
+- Objective: Sample from `\([\theta|X]\)` where `\(X\)` is data and :
+
+`$$\theta = [\theta_1, \theta_2, \theta_3, \ldots, \theta_k]$$`
+
+- Very flexible: define samplers for each `\(\theta_i\)`
+- Formally, we use Metropolis-within-Gibbs scheme, where Metropolis-Hastings is the sampler when no easier sampler can be identified
+
+---
+
+# Simple bivariate example
+
+- We will consider data `\(X = \{21.4, 17.64, 18.31, 15.12, 14.40, 15, 19.59, 15.06, 15.71, 14.65\}\)`
+
+- Objective : estimate posterior mean `\(\mu\)` and standard deviation `\(\sigma\)` given prior estimates :
+
+	+ `\([\mu] = \mathrm{N}(14.5, 0.6)\)` with parameters `\((\mu_0, \sigma_0)\)`
+	+ `\([\tau] = \left [ \frac{1}{\sigma^2} \right ] = \Gamma \left ( 1.08367, 3.068 \right )\)` with parameters `\((\alpha_{\sigma}, \beta_{\sigma})\)`
+
+---
+
+# Proportional form
+
+`$$[{\theta} \mid {X} ] \propto [ {X} \mid {\theta} ] [ {\theta}]$$`
+
+
+Where : 
+
+`$$[ {X} \mid {\theta} ] = \prod_{i = 1}^{n} \frac{1}{\hat{\sigma}\sqrt{2\pi}} e^{-\frac{\left (X_i - \hat{\mu}\right )^{2}}{2\hat{\sigma}^{2}}} = \prod_{i = 1}^{n} \mathrm{dnorm}(X_i, \hat{\mu}, \hat{\sigma})$$`
+
+And : 
+
+`$$[{\theta}] = [\hat{\mu} \mid \mu_0, \sigma_0][\hat{\sigma} \mid \alpha, \beta] = \mathrm{dnorm}(\hat{\mu}, \mu_0, \sigma_0) \times \mathrm{dgamma} \left (\hat{\tau} = \frac{1}{\hat{\sigma}^2}, \alpha, \beta \right )$$`
+
+---
+
+# Sampler
+
+
+```r
+mh.sampler &lt; – function(previous, A, target, prior, other.params, data, cand_fn = function(x, A) runif(1, x–A, x+A)) {
+	# propose and select candidate values using metropolis–hastings algorith
+	# cand_fn: the function used to draw samples
+	# previous: the previous state in the chain
+	# A: the tuning parameter
+	# target : function(x) returning the target density at X
+	candidate.value &lt; – cand_fn(previous, A)
+	p &lt; – mh.acceptance(candidate.value, previous, target, prior, 
+	other.params, data)
+	U &lt; – runif(1)
+	if (U &lt; p) {
+		result &lt; – candidate.value
+	} else {s
+		result &lt; – previous
+	}
+	return(result)
+}	
+```
+
+---
+
+# Conditional mu
+
+
+```r
+mu.conditional &lt; – function(mu, mu.prior, sigma, data) {
+	# log-likelihood
+	lik &lt; – exp(sum(dnorm(data, mu, sigma, log=TRUE)))
+	# log prior
+	prior &lt;- exp(– (mu – mu.prior[1])ˆ2 / (2 ∗ mu.prior[2]ˆ2))
+	# Return the conditional mu
+	return(lik*prior)
+}
+```
+
+---
+
+# Conditional sigma
+
+
+```r
+sigma.conditional &lt; – function(sigma, tau.prior, mu, data) {
+	# Compute the posterior
+	# Make sure sigma is positive
+	if (sigma &lt; = 0) {
+		return(–Inf)
+	} else {
+	# Likelihood
+	lik &lt; – exp(sum(dnorm(data, mu, sigma, log = TRUE)))
+	
+	# Prior
+	prior &lt;- exp((tau.prior[1]ˆ2 – 1) ∗ log(tau(sigma)) – 
+		tau(sigma) ∗ tau.prior[2])
+	}	
+	# Exponentiate back
+	return(lik*prior)	
+}
+```
+
+---
+
+# Acceptance
+
+
+```r
+mh.acceptance &lt; – function(current, previous, target, prior, other.params, data) {
+	# target : function returning target density at parameter x
+	num &lt; – target(current, prior, other.params, data)
+	denom &lt; – target(previous, prior, other.params, data)
+	if (denom == 0) return(-1)
+	else return(-num/denom)	
+}
+```
+
+---
+
+# Run the whole thing
+
+
+```r
+N &lt; – 5000 # number of iterations of the mcmc
+starting &lt; – c(10,4) # starting values for mu and sigma
+A &lt; – c(1.4, 0.8) # tuning parameters for the candidate function
+X &lt; – c(21.4, 17.64, 18.31, 15.12, 14.40, 15, 19.59, 15.06, 15.71, 14.65) # data set
+mu.prior &lt; – c(14.5, 0.6) # prior parameters for the mean (normal distribution)
+tau.prior &lt; – c(1.28367, 3.068) # prior parameters for sigma (gamma distribution)
+## Small function to get a parameter of the gamma
+tau &lt; – function(sigma) 1/(sigmaˆ2)
+# Object to store the results
+chain &lt; – matrix(nrow=N+1, ncol=2)
+chain [1,] &lt; – starting
+# Run the chain
+for(t in 2:( N+1)) {
+	# Sample for mu, fixing sigma
+	chain[t ,1] &lt; – mh.sampler(previous = chain[t–1,1], A = A[1], 
+	                           target = mu.conditional,
+	                           prior = mu.prior,
+	                           other.params = chain[t–1,2], data = X)
+	# Sample for sigma, fixing mu
+	chain[t ,2] &lt; – mh.sampler(previous = chain[t–1,2], A = A[2],
+	                           target = sigma.conditional,
+	                           prior = tau.prior,
+	                           other.params = chain[t –1,1], data = X)
+}
+```
+
+---
+
+# Exercise
+
+That was a big chunk of code and we are at day 9 ....  
+
+Let's try to implement this. Run the code and check the following : 
+
+- run multiple runs and overlay the series 
+- change the initial values and see how it behaves. Start far from the good values
+- Adjust the parameter `\(A\)` to see how it affects convergence time 
+- Plot the histogram of the values
+- Check the relationship between mu and sigma 
+
+---
+
+# Exercise 2
+
+We will try to adapt the code to the hemlock example. 
+
+- Use your simulated data so that you know precisely what are the true parameters. 
+- Specify a an informative prior that is not too far from the truth, with a reasonnable dispersion around the expected value. 
+- Revisit the **conditional** functions for each parameter theta
+- Adapt the chain to account for the extra parameter
+- Run the chain and plot the histogram of the different parameters
+- Compare to the parameters used to simulate data
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "solarized-light",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
