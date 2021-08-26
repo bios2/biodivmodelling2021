@@ -252,6 +252,26 @@ for(step in 2:(N+1)) {
 ```
 
 ---
+# Chick survival
+
+The Fake Petrel ( _Hydrobates inventus_ ) lays precisely 6 eggs. You have data on survivorship from 10 different nests:
+
+```{r echo = TRUE}
+set.seed(1859)
+x_obs <- rbinom(10, 6, 0.6)
+x_obs
+```
+
+Our model is:
+
+$$
+\begin{align}
+\text{hatched}_{i} &\sim \text{Binomial}(\theta, 6) \\
+\theta &\sim \text{Uniform}(0,1)
+\end{align}
+$$
+
+---
 
 # Exercise 2. 
 

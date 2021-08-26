@@ -414,7 +414,7 @@ $$
 ---
 # Try it out!
 
-Use the metropolis algorithm to fit the following data on the Fictitious Leafhopper abunance on 5 plants:
+Use the Metropolis algorithm to fit the following data on the Fictitious Leafhopper abundance on 5 plants:
 
 
 ```r
@@ -464,6 +464,37 @@ then finally
 $$
 R = \text{min}( 1, r)
 $$
+
+---
+# Try it out!
+
+Use the Metropolis-Hastings algorithm to fit the following data on the Fictitious Leafhopper abundance on 5 plants:
+
+
+```r
+set.seed(1859)
+xs &lt;- rpois(5, 27)
+xs
+```
+
+```
+## [1] 23 24 22 16 29
+```
+
+$$
+`\begin{align}
+y &amp;\sim \text{Poisson}(e^{\alpha}) \\
+\alpha &amp;\sim \text{Normal}(10, 2)
+\end{align}`
+$$
+
+_suggestion_ use as a candidate distribution `\(\text{LogNormal}(log(\theta^k), \sigma_{tune})\)`
+
+This means making your guesses with `rlnorm(1, mean = log(old_param), sd = tune)`
+
+**Compare your result to the conjugate posterior! you should get very similar shapes**
+
+---
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
