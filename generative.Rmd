@@ -70,12 +70,12 @@ $$
 and we have data `4, 5, 4, 4, 3`
 
 * So total successes is $4 + 5 + 4 + 4 + 3 = 20$
-* And total failures is $6 * 5 - 20 = 30$
+* And total failures is $6 * 5 - 20 = 10$
 
 The posterior becomes:
 
 $$
-\theta_{post} \sim \text{Beta}(22, 32)
+\theta_{post} \sim \text{Beta}(22, 12)
 $$
 
 ---
@@ -83,7 +83,7 @@ $$
 
 Quick pseudocode (_Note_ this is also called the Beta-Binomial distribution) :
 
-* generate values of $\theta$ from $\text{Beta}(22, 32)$
+* generate values of $\theta$ from $\text{Beta}(22, 12)$
 * for each value, generate an observation of surviving eggs using:
 
 $$
@@ -93,7 +93,7 @@ $$
 .pull-left[
 ```{r post-bb-hist, echo=TRUE, fig.show = 'hide'}
 theta_post <- rbeta(200, 
-                    22, 32)
+                    22, 12)
 obs <- rbinom(n = 200, 
               size = 6, 
               theta_post)
