@@ -8,7 +8,7 @@ output:
     lib_dir: assets
     seal: false
     nature:
-      highlightStyle: monokai
+      highlightStyle: solarized-light
       highlightLines: true
       countIncrementalSlides: false
       beforeInit: "macros.js"
@@ -51,6 +51,11 @@ Bayesian models can generate data. This is part of what makes them useful in eco
 
 ---
 # Simple Generative model
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.retina = 3)
+library(tidyverse)
+library(ggdag)
+```
 
 We've already seen a simple model which is generative: our Binomial model with a Beta prior:
 
@@ -102,12 +107,12 @@ hist(obs, breaks = 20)
 ]
 
 ---
-# nonlinear tree growth -- model
+# nonlinear tree growth -- write the model
 
 $$
 \begin{align}
 \text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &= \frac{aL}{a/x + L} \\
+\mu &= \frac{aL}{a/s + L} \\
 \end{align}
 $$
 
@@ -120,7 +125,11 @@ a               & \sim \text{Normal}(200, 15)\\
 s               & \sim \text{Normal}(15, 2)\\
 \end{align}
 $$
-_not_ the only choices for these parameters
+
+--
+* _not_ the only choices for these parameters! Not even particularly good ones
+--
+* use prior predictive checks to see if these priors make sense
 
 ---
 # Nonlinear light data -- simulation
@@ -130,7 +139,7 @@ Draw parameters from your priors.
 $$
 \begin{align}
 \text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &= \frac{aL}{a/x + L} \\
+\mu &= \frac{aL}{a/s + L} \\
 \sigma_{height} & \sim \text{Exponential}(2)\\
 a               & \sim \text{Normal}(200, 15)\\
 s               & \sim \text{Normal}(15, 2)\\
@@ -145,29 +154,49 @@ Draw parameters from your priors.
 $$
 \begin{align}
 \text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &= \frac{aL}{a/x + L} \\
+\mu &= \frac{aL}{a/s + L} \\
 \sigma_{height} & = 0.36\\
 a               & = 196.4\\
 s               & = 16.1\\
 \end{align}
 $$
+---
+# Nonlinear light data -- simulation
+
+Draw parameters from your priors. 
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/s + L} \\
+\sigma_{height} & = 0.36\\
+a               & = 196.4\\
+s               & = 16.1\\
+\end{align}
+$$
+--
+
+* keep these fixed for the rest of the simulation! You can go back and try different ones later!
 
 --
-* keep these fixed for the rest of the simulation! You can go back and try different ones later!
---
+
 * **pop quiz** is $\mu$ a parameter??
+
 ---
 # Nonlinear light data -- simulation
 
 $$
 \begin{align}
-\text{height} &\sim \text{LogNormal}\left(\text{log}\left(\frac{aL}{a/x + L} \right), \sigma_{height}\right) \\
+\text{height} &\sim \text{LogNormal}\left(\text{log}\left(\frac{aL}{a/s + L} \right), \sigma_{height}\right) \\
 \sigma_{height} & = 0.36\\
 a               & = 196.4\\
 s               & = 16.1\\
 \end{align}
 $$
+<br><br>
+**NO**. $\mu$ is not a parameter, it is simply a handy way to rewrite this equation so it is easier to read.  
 
+$\mu$ might be a very interesting thing to calculate after the model is run!
 ---
 class: center
 # Simple simulation
@@ -176,48 +205,294 @@ class: center
 L <- runif(300, 0.1, 100)
 mean <- 196.4 * L / (196.4 / 16.4 + L)
 hts <- rlnorm(300, log(mean), 0.36)
-plot(L, hts)
-points(L, mean, bg = "red", pch = 21)
+tibble(L, hts) %>% 
+  ggplot(aes(x = L, y = hts)) + 
+  geom_point() +
+  labs(x = "Light (percent)", y = "Height (cm)") + 
+  theme_bw()
 ```
 ---
-# Hierarchical models
+# Other ways of talking about the same model
+
+let's go back to this representation of the model:
 
 $$
 \begin{align}
 \text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &= \frac{aL}{a/x + L} \\
+\mu &= \frac{aL}{a/s + L} \\
 \sigma_{height} & \sim \text{Exponential}(2)\\
 a               & \sim \text{Normal}(200, 15)\\
 s               & \sim \text{Normal}(15, 2)\\
 \end{align}
 $$
+
+* the deterministic part of the model is indicated with $=$
+* the stochastic parts are all indicated with $\sim$
+
+When one distribution has a parameter which is also a distribution, we say that the first is *conditional* on the second.
+---
+class: center
+
+# Graphing conditional distributions
+
+
+```{r dag-fig, echo=FALSE, message = FALSE, fig.retina = 3}
+library(ggdag)
+pos <- tribble(
+  ~name , ~x, ~y,
+  "L", 5, 5,
+  "a" , 3.5, 2,
+  "s", 1, 2,
+  "sig_y", 5, 2,
+  "y", 3,5
+)
+
+tidy_ggdag <- dagify(
+  y ~ a + s + sig_y + L
+) %>%
+  tidy_dagitty(layout = pos %>% select(-name))
+
+greek <- c(
+  "a"   = "a",
+  "s"   = "s",
+  "sig_a"= "sigma[a]",
+  "bar_a"= "bar(a)",
+  "sig_y"= "sigma[cm]",
+  "L"    = "L",
+  "y"    = "y[j]"
+  )
+
+
+simple_dag <- tidy_ggdag %>%
+  mutate(obs = if_else(name == "L", 2, 1),
+         name = greek[name]) %>%
+  ggplot(aes(x = x,
+             y = y,
+             xend = xend,
+             yend = yend)) +
+  geom_dag_edges(aes(edge_linetype = obs)) +
+  geom_dag_point() +
+  geom_dag_text(col = "white", parse = TRUE, size = 7) +
+  theme_void()
+
+print(simple_dag)
+```
+
+---
+class: center
+
+# Converting the graph to probability notation
+
+```{r echo = FALSE}
+print(simple_dag)
+```
+
+<p>
+$$
+[a, s, \sigma_{\text{height}}|y ] \propto 
+[y |g(L, a, s), \sigma_{\text{height}}] 
+[a] 
+[s] [\sigma_{\text{height}}] 
+$$
+</p>
+
+---
+# Converting the graph to probability notation
+
+<p>
+$$
+[a, s, \sigma_{\text{height}}|y ] \propto 
+[y |g(L, a, s), \sigma_{\text{height}}] 
+[a] 
+[s] [\sigma_{\text{height}}] 
+$$
+</p>
+
+--
+
+* the vertical bar $|$ reads "conditioned on" or "dependent on"
+
+--
+
+* $L$ is observed and therefore it appears *only* of the right-hand side of $|$
+
+--
+
+* $a$, $s$ and $L$ are parameters and therefore need distributions
+
+--
+
+* $[y |g(L, a, s), \sigma_y]$ is a likelihood! This means all the observations multiplied together:
+
+<p>
+$$
+[y |g(L, a, s), \sigma_y] = \prod_{i=1}^{300} \text{LogNormal}\left(y_i, \text{log}\left(\frac{aL}{a/x + L} \right), \sigma_{height}\right)
+$$
+</p>
+
 ---
 # Hierarchical models
 
 $$
 \begin{align}
 \text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &= \frac{aL}{a/x + L} \\
-a &= \bar{a} + a_{species[i]}\\
-a_{species} &= \text{Normal}(0, \sigma_a)\\
+\mu &= \frac{aL}{a/s + L} \\
 \sigma_{height} & \sim \text{Exponential}(2)\\
-\sigma_{height} & \sim \text{Exponential}(4)\\
 a               & \sim \text{Normal}(200, 15)\\
 s               & \sim \text{Normal}(15, 2)\\
 \end{align}
 $$
+We replace a parameter with a linear model, complete with a distribution:
+---
+# Hierarchical models
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu_n), \sigma_{height}) \\
+\mu_n &= \frac{a_nL}{a_n/s + L} \\
+a_n &= \bar{a} + a_{j[n]}\\
+a_j &\sim \text{Normal}(0, \sigma_a)\\
+\bar{a}               & \sim \text{Normal}(200, 15)\\
+\sigma_{a} & \sim \text{Exponential}(2)\\
+\sigma_{height} & \sim \text{Exponential}(4)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+
+* For observation number $n$, between $1$ and $N$ total observations.
+* For species number $j$ , which is between $1$ and $S$ total species (in our example $S$ is 5)
+* There are **5 values** of $a_j$ : $a_1$, $a_2$, $a_3$, $a_4$, $a_5$
+
+---
+# Quick word about nested indexing
+
+$a_{j[n]}$  This means the value of $a$ for observation $n$ -- whichever of the $j$ species it is in.
+
+```{r echo = TRUE}
+sp_ids <- c(fir = 1, maple = 2)
+fake_data <- expand.grid(light = c(5,10, 60),
+                         spp = c("fir", "maple"))
+fake_data$id <- sp_ids[fake_data$spp]  #<<
+knitr::kable(fake_data)
+```
+
+
+
+---
+# Hierarchical models -- two ways to write
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu_n), \sigma_{height}) \\
+\mu_n &= \frac{a_nL}{a_n/s + L} \\
+a_n &= \bar{a} + a_{j[n]}\\
+a_j &\sim \text{Normal}(0, \sigma_a)\\
+\bar{a}               & \sim \text{Normal}(200, 15)\\
+\sigma_{a} & \sim \text{Exponential}(2)\\
+\sigma_{height} & \sim \text{Exponential}(4)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+---
+# Hierarchical models -- two ways to write
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu_n &= \frac{a_{j[n]}L}{a_{j[n]}/s + L} \\
+a_j &\sim \text{Normal}(\bar{a}, \sigma_a)\\
+\bar{a}               & \sim \text{Normal}(200, 15)\\
+\sigma_{a} & \sim \text{Exponential}(2)\\
+\sigma_{height} & \sim \text{Exponential}(4)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+
+--
+
+BOTH will have the same 5 values for $a_j$
+
 ---
 class: center
 # Different species $a$ simulation
 
 ```{r echo=FALSE, message = FALSE, echo=FALSE}
+suppressPackageStartupMessages(library(tidyverse))
 sp <- 1:5
+set.seed(1859)
 a_sp <- 196.4 + rnorm(5, mean = 0, sd = 70)
 L <- runif(300, 0.1, 100)
-suppressPackageStartupMessages(library(tidyverse))
 expand_grid(sp,L) %>% 
   mutate(mean_ht = a_sp[sp] * L / (a_sp[sp] / 16.4 + L),
          hts = rlnorm(5*300, log(mean_ht), 0.1)) %>% 
   ggplot(aes(x = L, y = hts)) + facet_wrap(~sp) + geom_point() + 
-  theme_bw()
+  theme_bw() + 
+  labs(y = "Height (cm)", x = "Light (percent)")
 ```
+
+
+---
+# DAG for Multilevel models
+
+
+```{r echo=FALSE, message = FALSE, fig.retina = 3 }
+library(ggdag)
+pos <- tribble(
+  ~name , ~x, ~y,
+  "L", 5, 5,
+  "aj" , 3.5, 2.5,
+  "bar_a", 3, 1.5,
+  "s", 1, 2,
+  "sig_a", 4, 1.5,
+  "sig_y", 5, 2,
+  "y", 3,5
+)
+
+tidy_ggdag <- dagify(
+  y ~ s + aj + sig_y + L,
+  aj ~ sig_a + bar_a
+) %>%
+  tidy_dagitty(layout = pos %>% select(-name))
+
+greek <- c(
+  "aj"   = "a[j]",
+  "s"   = "s",
+  "sig_a"= "sigma[a]",
+  "bar_a"= "bar(a)",
+  "sig_y"= "sigma[cm]",
+  "L"    = "L",
+  "y"    = "y[n]"
+  )
+
+
+tidy_ggdag %>%
+  mutate(obs = if_else(name == "L", 2, 1),
+         name = greek[name]) %>%
+  ggplot(aes(x = x,
+             y = y,
+             xend = xend,
+             yend = yend)) +
+  geom_dag_edges(aes(edge_linetype = obs)) +
+  geom_dag_point() +
+  geom_dag_text(col = "white", parse = TRUE, size = 7) +
+  theme_void()
+```
+
+Note: we have **arrows pointing in** AND **arrows pointing out**
+
+---
+# Probability notation
+
+<p>
+$$
+\begin{align}
+[a_j,\bar{a}, \sigma_a,  s, \sigma_{\text{height}}|y ] &\propto \\
+&[y |g(L, a_j, s), \sigma_{\text{height}}] \times \\
+&[a_j |\bar{a}, \sigma_a] \times \\
+&[\bar{a}] \times \\
+&[\sigma_a] \times \\
+&[s] \times \\ 
+&[\sigma_{\text{height}}]  
+\end{align}
+$$
+</p>

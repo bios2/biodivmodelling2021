@@ -51,6 +51,7 @@ Bayesian models can generate data. This is part of what makes them useful in eco
 ---
 # Simple Generative model
 
+
 We've already seen a simple model which is generative: our Binomial model with a Beta prior:
 
 We start with this model
@@ -97,16 +98,16 @@ hist(obs, breaks = 20)
 ]
 
 .pull-right[
-![](generative_files/figure-html/unnamed-chunk-1-1.png)&lt;!-- --&gt;
+&lt;img src="generative_files/figure-html/unnamed-chunk-1-1.png" width="504" /&gt;
 ]
 
 ---
-# nonlinear tree growth -- model
+# nonlinear tree growth -- write the model
 
 $$
 `\begin{align}
 \text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &amp;= \frac{aL}{a/x + L} \\
+\mu &amp;= \frac{aL}{a/s + L} \\
 \end{align}`
 $$
 
@@ -119,7 +120,11 @@ a               &amp; \sim \text{Normal}(200, 15)\\
 s               &amp; \sim \text{Normal}(15, 2)\\
 \end{align}`
 $$
-_not_ the only choices for these parameters
+
+--
+* _not_ the only choices for these parameters! Not even particularly good ones
+--
+* use prior predictive checks to see if these priors make sense
 
 ---
 # Nonlinear light data -- simulation
@@ -129,7 +134,7 @@ Draw parameters from your priors.
 $$
 `\begin{align}
 \text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &amp;= \frac{aL}{a/x + L} \\
+\mu &amp;= \frac{aL}{a/s + L} \\
 \sigma_{height} &amp; \sim \text{Exponential}(2)\\
 a               &amp; \sim \text{Normal}(200, 15)\\
 s               &amp; \sim \text{Normal}(15, 2)\\
@@ -144,72 +149,262 @@ Draw parameters from your priors.
 $$
 `\begin{align}
 \text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &amp;= \frac{aL}{a/x + L} \\
+\mu &amp;= \frac{aL}{a/s + L} \\
 \sigma_{height} &amp; = 0.36\\
 a               &amp; = 196.4\\
 s               &amp; = 16.1\\
 \end{align}`
 $$
+---
+# Nonlinear light data -- simulation
+
+Draw parameters from your priors. 
+
+$$
+`\begin{align}
+\text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &amp;= \frac{aL}{a/s + L} \\
+\sigma_{height} &amp; = 0.36\\
+a               &amp; = 196.4\\
+s               &amp; = 16.1\\
+\end{align}`
+$$
+--
+
+* keep these fixed for the rest of the simulation! You can go back and try different ones later!
 
 --
-* keep these fixed for the rest of the simulation! You can go back and try different ones later!
---
+
 * **pop quiz** is `\(\mu\)` a parameter??
+
 ---
 # Nonlinear light data -- simulation
 
 $$
 `\begin{align}
-\text{height} &amp;\sim \text{LogNormal}\left(\text{log}\left(\frac{aL}{a/x + L} \right), \sigma_{height}\right) \\
+\text{height} &amp;\sim \text{LogNormal}\left(\text{log}\left(\frac{aL}{a/s + L} \right), \sigma_{height}\right) \\
 \sigma_{height} &amp; = 0.36\\
 a               &amp; = 196.4\\
 s               &amp; = 16.1\\
 \end{align}`
 $$
+&lt;br&gt;&lt;br&gt;
+**NO**. `\(\mu\)` is not a parameter, it is simply a handy way to rewrite this equation so it is easier to read.  
 
+`\(\mu\)` might be a very interesting thing to calculate after the model is run!
 ---
 class: center
 # Simple simulation
 
-![](generative_files/figure-html/unnamed-chunk-2-1.png)&lt;!-- --&gt;
+&lt;img src="generative_files/figure-html/unnamed-chunk-2-1.png" width="504" /&gt;
 ---
-# Hierarchical models
+# Other ways of talking about the same model
+
+let's go back to this representation of the model:
 
 $$
 `\begin{align}
 \text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &amp;= \frac{aL}{a/x + L} \\
+\mu &amp;= \frac{aL}{a/s + L} \\
 \sigma_{height} &amp; \sim \text{Exponential}(2)\\
 a               &amp; \sim \text{Normal}(200, 15)\\
 s               &amp; \sim \text{Normal}(15, 2)\\
 \end{align}`
 $$
+
+* the deterministic part of the model is indicated with `\(=\)`
+* the stochastic parts are all indicated with `\(\sim\)`
+
+When one distribution has a parameter which is also a distribution, we say that the first is *conditional* on the second.
+---
+class: center
+
+# Graphing conditional distributions
+
+
+&lt;img src="generative_files/figure-html/dag-fig-1.png" width="504" /&gt;
+
+---
+class: center
+
+# Converting the graph to probability notation
+
+&lt;img src="generative_files/figure-html/unnamed-chunk-3-1.png" width="504" /&gt;
+
+&lt;p&gt;
+$$
+[a, s, \sigma_{\text{height}}|y ] \propto 
+[y |g(L, a, s), \sigma_{\text{height}}] 
+[a] 
+[s] [\sigma_{\text{height}}] 
+$$
+&lt;/p&gt;
+
+---
+# Converting the graph to probability notation
+
+&lt;p&gt;
+$$
+[a, s, \sigma_{\text{height}}|y ] \propto 
+[y |g(L, a, s), \sigma_{\text{height}}] 
+[a] 
+[s] [\sigma_{\text{height}}] 
+$$
+&lt;/p&gt;
+
+--
+
+* the vertical bar `\(|\)` reads "conditioned on" or "dependent on"
+
+--
+
+* `\(L\)` is observed and therefore it appears *only* of the right-hand side of `\(|\)`
+
+--
+
+* `\(a\)`, `\(s\)` and `\(L\)` are parameters and therefore need distributions
+
+--
+
+* `\([y |g(L, a, s), \sigma_y]\)` is a likelihood! This means all the observations multiplied together:
+
+&lt;p&gt;
+$$
+[y |g(L, a, s), \sigma_y] = \prod_{i=1}^{300} \text{LogNormal}\left(y_i, \text{log}\left(\frac{aL}{a/x + L} \right), \sigma_{height}\right)
+$$
+&lt;/p&gt;
+
 ---
 # Hierarchical models
 
 $$
 `\begin{align}
 \text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
-\mu &amp;= \frac{aL}{a/x + L} \\
-a &amp;= \bar{a} + a_{species[i]}\\
-a_{species} &amp;= \text{Normal}(0, \sigma_a)\\
+\mu &amp;= \frac{aL}{a/s + L} \\
 \sigma_{height} &amp; \sim \text{Exponential}(2)\\
+a               &amp; \sim \text{Normal}(200, 15)\\
+s               &amp; \sim \text{Normal}(15, 2)\\
+\end{align}`
+$$
+We replace a parameter with a linear model, complete with a distribution:
+---
+# Hierarchical models
+
+$$
+`\begin{align}
+\text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu_n), \sigma_{height}) \\
+\mu_n &amp;= \frac{a_nL}{a_n/s + L} \\
+a_n &amp;= \bar{a} + a_{j[n]}\\
+a_j &amp;\sim \text{Normal}(0, \sigma_a)\\
+\bar{a}               &amp; \sim \text{Normal}(200, 15)\\
+\sigma_{a} &amp; \sim \text{Exponential}(2)\\
 \sigma_{height} &amp; \sim \text{Exponential}(4)\\
-a               &amp; \sim \text{Normal}(200, 15)\\
 s               &amp; \sim \text{Normal}(15, 2)\\
 \end{align}`
 $$
+
+* For observation number `\(n\)`, between `\(1\)` and `\(N\)` total observations.
+* For species number `\(j\)` , which is between `\(1\)` and `\(S\)` total species (in our example `\(S\)` is 5)
+* There are **5 values** of `\(a_j\)` : `\(a_1\)`, `\(a_2\)`, `\(a_3\)`, `\(a_4\)`, `\(a_5\)`
+
+---
+# Quick word about nested indexing
+
+`\(a_{j[n]}\)`  This means the value of `\(a\)` for observation `\(n\)` -- whichever of the `\(j\)` species it is in.
+
+
+```r
+sp_ids &lt;- c(fir = 1, maple = 2)
+fake_data &lt;- expand.grid(light = c(5,10, 60),
+                         spp = c("fir", "maple"))
+*fake_data$id &lt;- sp_ids[fake_data$spp]
+knitr::kable(fake_data)
+```
+
+
+
+| light|spp   | id|
+|-----:|:-----|--:|
+|     5|fir   |  1|
+|    10|fir   |  1|
+|    60|fir   |  1|
+|     5|maple |  2|
+|    10|maple |  2|
+|    60|maple |  2|
+
+
+
+---
+# Hierarchical models -- two ways to write
+
+$$
+`\begin{align}
+\text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu_n), \sigma_{height}) \\
+\mu_n &amp;= \frac{a_nL}{a_n/s + L} \\
+a_n &amp;= \bar{a} + a_{j[n]}\\
+a_j &amp;\sim \text{Normal}(0, \sigma_a)\\
+\bar{a}               &amp; \sim \text{Normal}(200, 15)\\
+\sigma_{a} &amp; \sim \text{Exponential}(2)\\
+\sigma_{height} &amp; \sim \text{Exponential}(4)\\
+s               &amp; \sim \text{Normal}(15, 2)\\
+\end{align}`
+$$
+---
+# Hierarchical models -- two ways to write
+
+$$
+`\begin{align}
+\text{height} &amp;\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu_n &amp;= \frac{a_{j[n]}L}{a_{j[n]}/s + L} \\
+a_j &amp;\sim \text{Normal}(\bar{a}, \sigma_a)\\
+\bar{a}               &amp; \sim \text{Normal}(200, 15)\\
+\sigma_{a} &amp; \sim \text{Exponential}(2)\\
+\sigma_{height} &amp; \sim \text{Exponential}(4)\\
+s               &amp; \sim \text{Normal}(15, 2)\\
+\end{align}`
+$$
+
+--
+
+BOTH will have the same 5 values for `\(a_j\)`
+
 ---
 class: center
 # Different species `\(a\)` simulation
 
-![](generative_files/figure-html/unnamed-chunk-3-1.png)&lt;!-- --&gt;
+&lt;img src="generative_files/figure-html/unnamed-chunk-5-1.png" width="504" /&gt;
+
+
+---
+# DAG for Multilevel models
+
+
+&lt;img src="generative_files/figure-html/unnamed-chunk-6-1.png" width="504" /&gt;
+
+Note: we have **arrows pointing in** AND **arrows pointing out**
+
+---
+# Probability notation
+
+&lt;p&gt;
+$$
+`\begin{align}
+[a_j,\bar{a}, \sigma_a,  s, \sigma_{\text{height}}|y ] &amp;\propto \\
+&amp;[y |g(L, a_j, s), \sigma_{\text{height}}] \times \\
+&amp;[a_j |\bar{a}, \sigma_a] \times \\
+&amp;[\bar{a}] \times \\
+&amp;[\sigma_a] \times \\
+&amp;[s] \times \\ 
+&amp;[\sigma_{\text{height}}]  
+\end{align}`
+$$
+&lt;/p&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
 <script>var slideshow = remark.create({
-"highlightStyle": "monokai",
+"highlightStyle": "solarized-light",
 "highlightLines": true,
 "countIncrementalSlides": false
 });
