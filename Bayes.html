@@ -366,9 +366,11 @@ $$
 R = \text{min}\left( 1, \frac{[y|\theta^{new}][\theta^{new}]}{[y|\theta^k][\theta^k]}\right)
 $$
 
-(in other words, if the ratio is better always take it. If the ratio is less than 1, there's a chance we'll take it anyway)
+This is the probability of acceptance. In other words, if the ratio is better always take it. If the ratio is less than 1, there's a chance we'll take it anyway.
 
 * Test to see if `runif(1, min=0, max=1)` `\(&lt; R\)`. if so, set `\(\theta^{k + 1} = \theta^{new}\)`
+
+* **Discussion question**: why should we accept "worse" parameter values? Why is it good to sometimes stay in the same place? 
 
 ---
 # Try it out!
@@ -380,10 +382,6 @@ Use the metropolis algorithm to fit the following data on the Fictitious Leafhop
 set.seed(1859)
 xs &lt;- rpois(5, 27)
 ```
-
----
-# mixed model
-
 
 
     </textarea>
