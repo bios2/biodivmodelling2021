@@ -373,6 +373,45 @@ This is the probability of acceptance. In other words, if the ratio is better al
 * **Discussion question**: why should we accept "worse" parameter values? Why is it good to sometimes stay in the same place? 
 
 ---
+class: center 
+# Visualizing
+
+&lt;img src="Bayes_files/figure-html/unnamed-chunk-6-1.png" width="504" /&gt;
+
+---
+class: center 
+
+# Visualizing
+
+&lt;img src="Bayes_files/figure-html/unnamed-chunk-7-1.png" width="504" /&gt;
+
+---
+# quick reminder! 
+
+--
+
+* the candidate distribution is not the prior
+
+--
+
+* the candidate distribution is not the prior
+
+--
+
+* the candidate distribution makes new values but it's not the prior, you still have to put the values it produces into the likelihood and the prior
+
+---
+# Now: to math! 
+
+$$
+r = \frac{\text{Likelihood}(\text{data}|\theta^{new}) \times \text{Prior}(\theta^{new}, \alpha, \beta)}{\text{Likelihood}(\text{data}|\theta^{old}) \times \text{Prior}(\theta^{old}, \alpha, \beta)}
+$$
+
+* here I'm using `\(\alpha\)` and `\(\beta\)` to mean any prior parameters. They don't change!
+
+* plug the new candidate value into the likelihood and multiply by the prior
+
+---
 # Try it out!
 
 Use the metropolis algorithm to fit the following data on the Fictitious Leafhopper abunance on 5 plants:
@@ -395,6 +434,36 @@ y &amp;\sim \text{Poisson}(e^{\alpha}) \\
 \end{align}`
 $$
 
+_suggestion_ use as a candidate distribution `\(\text{Normal}(\theta^k, \sigma_{tune})\)`
+
+This means making your guesses with `rnorm(1, mean = old_param, sd = tune)`
+
+**Compare your result to the conjugate posterior! you should get very similar shapes**
+
+---
+# Metropolis Hastings
+
+Sometimes you need an _asymmetrical_ distribution for your parameter. This happens when the parameter is bounded. 
+
+In this case, we need to adjust our calculation of `\(r\)`. Now in addition to the Likelihood and Prior, we have the Candidate distribution getting involved
+
+$$
+\frac{[y|\theta^{new}][\theta^{new}][\theta^{old}|\theta^{new}]}
+{[y|\theta^{old}][\theta^{old}][\theta^{old}|\theta^{new}]}
+$$ 
+
+.small[
+&lt;p&gt;
+$$
+r = \frac{\text{Likelihood}(\text{data}|\theta^{new}) \times \text{Prior}(\theta^{new}, \alpha, \beta) \times \text{Candidate}(\theta^{old}, \mu = \theta^{new}, \sigma_{tune})}{\text{Likelihood}(\text{data}|\theta^{old}) \times \text{Prior}(\theta^{old}, \alpha, \beta)\times \text{Candidate}(\theta^{new}, \mu = \theta^{old}, \sigma_{tune})}
+$$
+&lt;/p&gt;
+]
+
+then finally 
+$$
+R = \text{min}( 1, r)
+$$
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
