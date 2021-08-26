@@ -1,6 +1,7 @@
 # metropolis algo for mean of poisson
 
 # poiss variates
+set.seed(1859)
 xs <- rpois(5, 27)
 
 # likelihood
@@ -21,11 +22,9 @@ normal_loglike(5, mean = 10, sd = 2)
 numerator <- function(v, data = xs)  poisson_loglike(data, lambda = exp(v)) + normal_loglike(v, mean = 1, sd = 2)
 
 grid <- seq(from= -2, to = 5, length.out = 30)
-y <- map_dbl(grid, ~ numerator(.))
-tot <- exp(y) %>% sum %>% log()
-y - tot
+y <- purrr::map_dbl(grid, ~ numerator(.))
 
-plot(grid, map_dbl(grid, y/sum(y)))
+plot(grid, exp(y)/sum(exp(y)))
 
 
 # proposal function
@@ -45,7 +44,10 @@ for (i in 2:length(chain)){
   start <- chain[i-1]
 
   new <- propose_new(start, 0.1)
-  p_accept <- min(1, exp(numerator(new) - numerator(start)))
+
+  r <- exp(numerator(new) - numerator(start))
+
+  p_accept <- min(1, r)
 
   chain[i] <- ifelse(runif(1) < p_accept, new, start)
 }
@@ -60,10 +62,6 @@ median(exp(chain))
 ## conjugate
 
 curve(dgamma(x, (25/15)^2, 25/15^2), xlim = c(1, 50))
-
-curve(dgamma(x, (25/15)^2 + sum(xs), 25/15^2 + length(xs)), xlim = c(1, 50), add = TRUE)
-
-
 
 plot(density(exp(chain)))
 
