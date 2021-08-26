@@ -137,27 +137,27 @@ Note : you can still use *dnorm* to evaluate your target distribution.
 
 
 ```r
-	rej_norm &lt;- function(n, mu, sig) {
-		# Define the target
-		target &lt;- function(x, mu, sig) dnorm(x)
-		# Define the candidate
-		cand &lt;- function(x) dunif(x,-2*sig,2*sig)
-		# Constant
-		M &lt;- 5
-		# Object to store the n results 
-		result &lt;- numeric(n)
-		# Main loop
-		for(i in 1:n) {
-		    accept &lt;- FALSE
-		    while(!accept) {
-		      X &lt;- runif(1,-6,6)
-		      p &lt;- target(X) / (M * cand(X))
-		      P &lt;- runif(1)
-		      accept &lt;- (P &lt; p) 
-			  } #endwhile
-		    result[i] &lt;- X 
-		} #endfor
-		return(result) } #endfunction
+rej_norm &lt;- function(n, mu, sig) {
+  # Define the target
+  target &lt;- function(x, mu, sig) dnorm(x, mu, sig)
+  # Define the candidate
+  cand &lt;- function(x, sig) dunif(x,-2*sig,2*sig)
+  # Constant
+  M &lt;- 5
+  # Object to store the n results 
+  result &lt;- numeric(n)
+  # Main loop
+  for(i in 1:n) {
+    accept &lt;- FALSE
+    while(!accept) {
+      X &lt;- runif(1,-6,6)
+      p &lt;- target(X,mu,sig) / (M * cand(X))
+      P &lt;- runif(1)
+      accept &lt;- (P &lt; p) 
+    } #endwhile
+    result[i] &lt;- X 
+  } #endfor
+  return(result) } #endfunction
 ```
 
 ---
@@ -305,7 +305,8 @@ And :
 
 
 ```r
-mh.sampler &lt; – function(previous, A, target, prior, other.params, data, cand_fn = function(x, A) runif(1, x–A, x+A)) {
+mh.sampler &lt; – function(previous, A, target, prior, other.params,
+                        data, cand_fn = function(x, A) runif(1, x–A, x+A)) {
 	# propose and select candidate values using metropolis–hastings algorith
 	# cand_fn: the function used to draw samples
 	# previous: the previous state in the chain

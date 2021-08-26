@@ -137,27 +137,27 @@ Note : you can still use *dnorm* to evaluate your target distribution.
 # Rejection sampling 
 
 ```{r, eval = FALSE}	
-	rej_norm <- function(n, mu, sig) {
-		# Define the target
-		target <- function(x, mu, sig) dnorm(x)
-		# Define the candidate
-		cand <- function(x) dunif(x,-2*sig,2*sig)
-		# Constant
-		M <- 5
-		# Object to store the n results 
-		result <- numeric(n)
-		# Main loop
-		for(i in 1:n) {
-		    accept <- FALSE
-		    while(!accept) {
-		      X <- runif(1,-6,6)
-		      p <- target(X) / (M * cand(X))
-		      P <- runif(1)
-		      accept <- (P < p) 
-			  } #endwhile
-		    result[i] <- X 
-		} #endfor
-		return(result) } #endfunction
+rej_norm <- function(n, mu, sig) {
+  # Define the target
+  target <- function(x, mu, sig) dnorm(x, mu, sig)
+  # Define the candidate
+  cand <- function(x, sig) dunif(x,-2*sig,2*sig)
+  # Constant
+  M <- 5
+  # Object to store the n results 
+  result <- numeric(n)
+  # Main loop
+  for(i in 1:n) {
+    accept <- FALSE
+    while(!accept) {
+      X <- runif(1,-6,6)
+      p <- target(X,mu,sig) / (M * cand(X))
+      P <- runif(1)
+      accept <- (P < p) 
+    } #endwhile
+    result[i] <- X 
+  } #endfor
+  return(result) } #endfunction
 ```
 
 ---
@@ -305,7 +305,8 @@ $$[{\theta}] = [\hat{\mu} \mid \mu_0, \sigma_0][\hat{\sigma} \mid \alpha, \beta]
 
 ```{r, eval = FALSE}	
 
-mh.sampler < – function(previous, A, target, prior, other.params, data, cand_fn = function(x, A) runif(1, x–A, x+A)) {
+mh.sampler < – function(previous, A, target, prior, other.params,
+                        data, cand_fn = function(x, A) runif(1, x–A, x+A)) {
 	# propose and select candidate values using metropolis–hastings algorith
 	# cand_fn: the function used to draw samples
 	# previous: the previous state in the chain
