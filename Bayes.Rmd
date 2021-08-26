@@ -392,9 +392,16 @@ This is the probability of acceptance. In other words, if the ratio is better al
 
 Use the metropolis algorithm to fit the following data on the Fictitious Leafhopper abunance on 5 plants:
 
-```{r}
+```{r echo=TRUE}
 set.seed(1859)
 xs <- rpois(5, 27)
+xs
 ```
 
+$$
+\begin{align}
+y &\sim \text{Poisson}(e^{\alpha}) \\
+\alpha &\sim \text{Normal}(10, 2)
+\end{align}
+$$
 

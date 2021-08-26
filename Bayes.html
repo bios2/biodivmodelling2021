@@ -381,8 +381,19 @@ Use the metropolis algorithm to fit the following data on the Fictitious Leafhop
 ```r
 set.seed(1859)
 xs &lt;- rpois(5, 27)
+xs
 ```
 
+```
+## [1] 23 24 22 16 29
+```
+
+$$
+`\begin{align}
+y &amp;\sim \text{Poisson}(e^{\alpha}) \\
+\alpha &amp;\sim \text{Normal}(10, 2)
+\end{align}`
+$$
 
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
