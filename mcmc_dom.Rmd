@@ -152,8 +152,8 @@ rej_norm <- function(n, mu, sig) {
     while(!accept) {
       X <- runif(1,-6,6)
       p <- target(X,mu,sig) / (M * cand(X))
-      P <- runif(1)
-      accept <- (P < p) 
+      rand <- runif(1)
+      accept <- (rand < p) 
     } #endwhile
     result[i] <- X 
   } #endfor
