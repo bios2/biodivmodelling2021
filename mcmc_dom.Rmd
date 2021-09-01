@@ -318,8 +318,10 @@ $$[ {X} \mid {\theta} ] = \prod_{i = 1}^{n} \frac{1}{\hat{\sigma}\sqrt{2\pi}} e^
 
 And : 
 
-$$[{\theta}] = [\hat{\mu} \mid \mu_0, \sigma_0][\hat{\sigma} \mid \alpha, \beta] = \mathrm{dnorm}(\hat{\mu}, \mu_0, \sigma_0) \times \mathrm{dgamma} \left (\hat{\tau} = \frac{1}{\hat{\sigma}^2}, \alpha, \beta \right )$$
-
+.small[
+$$[{\theta}] = [\hat{\mu} \mid \mu_0, \sigma_0][\hat{\sigma} \mid \alpha, \beta] = \mathrm{dnorm}(\hat{\mu}, \mu_0, \sigma_0) \times \\
+\mathrm{dgamma} \left (\hat{\tau} = \frac{1}{\hat{\sigma}^2}, \alpha, \beta \right )$$
+]
 ---
 
 # Sampler
