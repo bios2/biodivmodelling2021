@@ -34,7 +34,7 @@ propose_new <- function(x, sig_tune) rnorm(1, mean = x, sd = sig_tune)
 
 # start value
 
-chain <- numeric(500)
+chain <- numeric(5000)
 
 
 chain[1] <- 0.1
@@ -43,7 +43,7 @@ for (i in 2:length(chain)){
 
   start <- chain[i-1]
 
-  new <- propose_new(start, 0.1)
+  new <- propose_new(start, .2)
 
   r <- exp(numerator(new) - numerator(start))
 
@@ -53,8 +53,8 @@ for (i in 2:length(chain)){
 }
 
 plot(exp(chain))
-plot(exp(chain[250:500]))
-plot(density(exp(chain)))
+plot(exp(chain[250:500]), type = "l")
+plot(density(exp(chain[250:500])))
 
 median(exp(chain))
 
