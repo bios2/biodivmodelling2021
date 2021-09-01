@@ -1,0 +1,120 @@
+---
+title: "Seedling growth model via brms"
+author: "Andrew"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+<!-- `html_pretty` currently supports three page themes (`cayman`, `tactile` and -->
+<!-- `architect`), and two syntax highlight styles (`github` and `vignette`). -->
+<!-- The theme and highlight styles can be specified in the document metadata, -->
+<!-- for example: -->
+
+```{r setup, echo=FALSE, include=FALSE, message=FALSE, warning=FALSE}
+suppressPackageStartupMessages(library(tidyverse))
+library(brms)
+```
+
+
+We are considering the following model of seedling growth
+
+$$
+\begin{align}
+\text{height} &\sim \text{LogNormal}(\text{log}(\mu), \sigma_{height}) \\
+\mu &= \frac{aL}{a/s + L} \\
+\sigma_{height} & \sim \text{Exponential}(2)\\
+a               & \sim \text{Normal}(200, 15)\\
+s               & \sim \text{Normal}(15, 2)\\
+\end{align}
+$$
+
+We've already seen how to simulate data from this model:
+
+```{r}
+L <- runif(300, 0.1, 100)
+mean <- 196.4 * L / (196.4 / 16.4 + L)
+hts <- rlnorm(300, log(mean), 0.36)
+tibble(L, hts) %>% 
+  ggplot(aes(x = L, y = hts)) + 
+  geom_point() +
+  labs(x = "Light (percent)", y = "Height (cm)") + 
+  theme_bw()
+```
+
+How can we make prior predictive simulations like this using brms?
+
+First we write the model
+
+```{r}
+mike_menton_seedlings <- bf(height ~ a * L / (a / s + L), 
+   a ~ 1, 
+   s ~ 1,
+   nl = TRUE)
+```
+
+```{r}
+
+fake_seedlings <- data.frame(L = seq(0.1, 99, length.out = 300),
+                             height = 0)
+
+get_prior(mike_menton_seedlings, data = fake_seedlings)
+
+seedling_prior <- c(
+  prior(exponential(.02), class = "sigma"),
+  prior(normal(200, 15), nlpar = "a"),
+  prior(normal(20, .5), nlpar = "s")
+)
+
+
+```
+
+
+```{r eval=FALSE}
+make_stancode(mike_menton_seedlings, data = fake_seedlings, prior = seedling_prior)
+```
+
+
+
+```{r}
+prior_predict_seedlings <- brm(mike_menton_seedlings, data = fake_seedlings,
+                               prior = seedling_prior, file = "mike_mention_prior",
+                               sample_prior = "only", iter = 2000)
+
+prior_predict_seedlings
+```
+
+```{r}
+pp <- posterior_predict(prior_predict_seedlings, newdata = fake_seedlings)
+
+head(pp)
+
+library(tidybayes)
+
+resp <- median_hdi(tb_check, .width = c(0.89))
+resp %>% 
+  ungroup %>% 
+  ggplot(aes(x= L, y = ))
+```
+
+
+```{r}
+library(tidyverse)
+
+tb_check <- tidybayes::add_predicted_draws(fake_seedlings, prior_predict_seedlings)
+
+tb_check %>% ungroup %>% 
+  ggplot(aes(x = L, y = .prediction)) + 
+  tidybayes::stat_lineribbon(.width = .8)
+```
+
+
+```{r}
+tb_check %>% 
+  filter(.draw %in% 1:10) %>% 
+  ggplot(aes(x = L, y = .prediction)) + geom_point() + facet_wrap(~.draw)
+```
+
+
